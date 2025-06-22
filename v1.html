@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工厂安全隐患排查</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#FF7D00',
+                        danger: '#F53F3F',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        info: '#86909C',
+                        light: '#F2F3F5',
+                        dark: '#1D2129',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'game': '0 10px 25px -5px rgba(59, 130, 246, 0.2)',
+                        'hazard': '0 0 0 3px rgba(239, 68, 68, 0.5)',
+                    }
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-all-300 {
+                transition: all 0.3s ease;
+            }
+            .scale-hover {
+                transition: transform 0.2s ease;
+            }
+            .scale-hover:hover {
+                transform: scale(1.05);
+            }
+            .game-shadow {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            }
+            .hint-active {
+                background-color: rgba(255, 125, 0, 0.5) !important;
+            }
+            .animate-pulse-slow {
+                animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            .animate-bounce-slow {
+                animation: bounce 2s infinite;
+            }
+            .animate-float {
+                animation: float 3s ease-in-out infinite;
+            }
+            @keyframes float {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+                100% { transform: translateY(0px); }
+            }
+            .backdrop-blur {
+                backdrop-filter: blur(8px);
+            }
+             .hazard-item {
+                display: flex;
+                align-items: center;
+                background-color: #f0f9ff;
+                border-left: 4px solid #3b82f6;
+                padding: 0.5rem 1rem;
+                border-radius: 0.375rem;
+                transition: all 0.3s ease;
+            }
+            .hazard-item:hover {
+                background-color: #e0f2fe;
+                transform: translateX(5px);
+            }
+            .hazard-icon {
+                margin-right: 0.5rem;
+                color: #165DFF;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-inter text-dark min-h-screen flex flex-col">
+    <!-- 头部导航 -->
+    <header class="bg-primary text-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-shield text-xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold">查找身边安全隐患</h1>
+            </div>
+            <nav>
+                <ul class="flex space-x-4">
+                    <li><button id="rulesBtn" class="hover:text-light transition-all-300"><i class="fa fa-book mr-1"></i>游戏规则</button></li>
+                    <li><button id="aboutBtn" class="hover:text-light transition-all-300"><i class="fa fa-info-circle mr-1"></i>关于游戏</button></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <!-- 主内容区 -->
+    <main class="flex-grow container mx-auto px-4 py-6">
+        <!-- 开始界面 -->
+        <section id="startScreen" class="flex flex-col items-center justify-center h-full py-12">
+            <div class="bg-white rounded-xl p-8 game-shadow max-w-3xl w-full">
+                <div class="text-center mb-8">
+                    <img src="factory.jpg" alt="工厂安全场景" class="rounded-lg mx-auto mb-4 w-full h-48 object-cover">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-primary mb-2">安全隐患排查挑战</h2>
+                    <p class="text-gray-600 mb-6">在规定时间内，找出场景中的安全隐患，测试你的安全意识！</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div class="bg-light rounded-lg p-4 text-center scale-hover">
+                        <i class="fa fa-clock-o text-primary text-3xl mb-2"></i>
+                        <h3 class="font-semibold mb-1">限时挑战</h3>
+                        <p class="text-sm text-gray-600">每个关卡有时间限制</p>
+                    </div>
+                    <div class="bg-light rounded-lg p-4 text-center scale-hover">
+                        <i class="fa fa-search text-primary text-3xl mb-2"></i>
+                        <h3 class="font-semibold mb-1">寻找隐患</h3>
+                        <p class="text-sm text-gray-600">点击图片中的隐患点</p>
+                    </div>
+                    <div class="bg-light rounded-lg p-4 text-center scale-hover">
+                        <i class="fa fa-trophy text-primary text-3xl mb-2"></i>
+                        <h3 class="font-semibold mb-1">获取积分</h3>
+                        <p class="text-sm text-gray-600">正确识别得积分</p>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row justify-center gap-4">
+                    <button id="startEasyBtn" class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-lg transition-all-300 flex items-center justify-center">
+                        <i class="fa fa-play-circle mr-2"></i>简单模式
+                    </button>
+                    <button id="startHardBtn" class="bg-secondary hover:bg-secondary/90 text-white font-bold py-3 px-8 rounded-lg transition-all-300 flex items-center justify-center">
+                        <i class="fa fa-bolt mr-2"></i>困难模式
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- 游戏界面 -->
+        <section id="game-screen" class="hidden">
+            <div class="bg-white rounded-xl p-4 md:p-6 game-shadow">
+                <!-- 游戏状态栏 -->
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-6">
+                    <div class="flex flex-wrap items-center gap-3 mb-3 md:mb-0">
+                        <div class="bg-light rounded-full px-4 py-2 flex items-center">
+                            <i class="fa fa-star text-yellow-400 mr-2"></i>
+                            <span id="score" class="font-bold text-dark">0</span>
+                        </div>
+                        <div class="bg-light rounded-full px-4 py-2 flex items-center">
+                            <i class="fa fa-clock-o text-warning mr-2"></i>
+                            <span id="timer" class="font-bold text-dark">01:30</span>
+                        </div>
+                        <div class="bg-light rounded-full px-4 py-2 flex items-center">
+                            <i class="fa fa-flag-checkered text-primary mr-2"></i>
+                            <span id="level" class="font-bold text-dark">1</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button id="pauseBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all-300 flex items-center">
+                            <i class="fa fa-pause mr-1"></i> 暂停
+                        </button>
+                    </div>
+                </div>
+                <!-- 游戏区域 -->
+                <div class="relative">
+                    <div id="gameImageContainer" class="relative w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                        <img id="gameImage" src="scene2.jpg" alt="工厂安全场景" class="w-full h-full object-cover">
+                        <!-- 隐患点将通过JS动态添加 -->
+                    </div>
+                    <!-- 已发现隐患列表（优化后） -->
+                    <div class="bg-white p-4 border-t border-gray-100">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-lg text-gray-800">已发现隐患</h3>
+                            <span id="hazards-found" class="text-sm text-gray-600">0/5</span>
+                        </div>
+                        <div id="found-hazards-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            <!-- 已发现的隐患将通过JS动态添加 -->
+                        </div>
+                    </div>
+                    <!-- 提示信息 -->
+                    <div class="mt-4 bg-light rounded-lg p-4">
+                        <p class="text-gray-700"><i class="fa fa-info-circle text-primary mr-2"></i><span id="gameHint">找出图片中的安全隐患，点击它们！</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- 游戏结束界面 -->
+        <div id="end-screen" class="hidden min-h-[80vh] flex flex-col items-center justify-center text-center p-4">
+            <div class="bg-white rounded-2xl shadow-game p-8 max-w-xl w-full transform transition-all duration-300">
+                <div class="mb-6">
+                    <h2 class="text-3xl font-bold text-primary mb-2">游戏结束!</h2>
+                    <p class="text-gray-600">你的表现</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <div class="bg-light rounded-lg p-4">
+                        <h3 class="text-sm text-gray-500 mb-1">最终得分</h3>
+                        <p id="final-score" class="text-2xl font-bold text-primary">0</p>
+                    </div>
+                    <div class="bg-light rounded-lg p-4">
+                        <h3 class="text-sm text-gray-500 mb-1">用时</h3>
+                        <p id="time-spent" class="text-2xl font-bold text-secondary">00:00</p>
+                    </div>
+                    <div class="bg-light rounded-lg p-4">
+                        <h3 class="text-sm text-gray-500 mb-1">正确率</h3>
+                        <p id="accuracy-rate" class="text-2xl font-bold text-secondary">0%</p>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <button id="restart-game" class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-lg transition-all-300 w-full flex items-center justify-center mx-auto">
+                        <i class="fa fa-refresh mr-2"></i>再玩一次
+                    </button>
+                    <button id="view-report" class="bg-secondary hover:bg-secondary/90 text-white font-bold py-3 px-8 rounded-lg transition-all-300 w-full flex items-center justify-center mx-auto">
+                        <i class="fa fa-file-text-o mr-2"></i>查看报告
+                    </button>
+                    <button id="back-to-menu" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-8 rounded-lg transition-all-300 w-full flex items-center justify-center mx-auto">
+                        <i class="fa fa-home mr-2"></i>返回菜单
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- 图片隐患找完后的选择框 -->
+        <div id="nextLevelChoice" class="hidden min-h-[80vh] flex flex-col items-center justify-center text-center p-4">
+            <div class="bg-white rounded-2xl shadow-game p-8 max-w-xl w-full transform transition-all duration-300">
+                <div class="mb-6">
+                    <h2 class="text-3xl font-bold text-primary mb-2">本关隐患已全部找出！</h2>
+                    <p class="text-gray-600">请选择下一步操作</p>
+                </div>
+                <div class="space-y-3">
+                    <button id="nextLevelBtn" class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-lg transition-all-300 w-full flex items-center justify-center mx-auto">
+                        <i class="fa fa-arrow-right mr-2"></i>进入下一关
+                    </button>
+                    <button id="endGameBtn" class="bg-secondary hover:bg-secondary/90 text-white font-bold py-3 px-8 rounded-lg transition-all-300 w-full flex items-center justify-center mx-auto">
+                        <i class="fa fa-stop mr-2"></i>结束游戏
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- 新增：暂停界面 -->
+        <section id="pause-screen" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full game-shadow transform transition-all">
+                <h2 class="text-2xl font-bold text-center mb-6">游戏暂停</h2>
+                <div class="flex flex-col space-y-4">
+                    <button id="resume-btn" class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-8 rounded-lg transition-all-300 flex items-center justify-center">
+                        <i class="fa fa-play mr-2"></i>继续游戏
+                    </button>
+                    <button id="restart-btn" class="bg-secondary hover:bg-secondary/90 text-white font-bold py-3 px-8 rounded-lg transition-all-300 flex items-center justify-center">
+                        <i class="fa fa-refresh mr-2"></i>重新开始
+                    </button>
+                    <button id="exit-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-8 rounded-lg transition-all-300 flex items-center justify-center">
+                        <i class="fa fa-sign-out mr-2"></i>退出游戏
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- 提示弹窗 -->
+        <div id="hint-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 transform transition-all duration-300 scale-95 opacity-0" id="hint-modal-content">
+                <div class="text-center mb-4">
+                    <div id="hint-icon" class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-500 mb-4">
+                        <i class="fa fa-check-circle text-3xl"></i>
+                    </div>
+                    <h3 id="hint-title" class="text-xl font-bold text-gray-800">答对了！</h3>
+                    <p id="hint-message" class="text-gray-600 mt-2">这是一个易燃物品放置不当的安全隐患。</p>
+                </div>
+                <div class="border-t border-gray-100 pt-4">
+                    <button id="close-hint-modal" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        继续游戏
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- 报告弹窗 -->
+        <div id="report-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div id="report-modal-content" class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 transform transition-all duration-300 scale-95 opacity-0">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">安全隐患排查报告</h2>
+                    <p id="report-summary" class="text-gray-600 mt-2">报告摘要</p>
+                </div>
+
+                <!-- 统计概览 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-light rounded-xl p-4 transform transition-all hover:scale-105">
+                        <h3 class="text-sm text-gray-500 mb-1">总得分</h3>
+                        <p id="report-score" class="text-2xl font-bold text-primary">0</p>
+                    </div>
+                    <div class="bg-light rounded-xl p-4 transform transition-all hover:scale-105">
+                        <h3 class="text-sm text-gray-500 mb-1">总用时</h3>
+                        <p id="report-time" class="text-2xl font-bold text-secondary">00:00</p>
+                    </div>
+                    <div class="bg-light rounded-xl p-4 transform transition-all hover:scale-105">
+                        <h3 class="text-sm text-gray-500 mb-1">正确率</h3>
+                        <div class="mt-1 flex items-center">
+                            <p id="report-accuracy" class="text-2xl font-bold text-success mr-2">0%</p>
+                            <div class="progress-bar flex-1">
+                                <div id="accuracy-bar" class="progress-value bg-success" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 关卡统计 -->
+                <div class="bg-light rounded-xl p-4 mb-6 transform transition-all hover:shadow-md">
+                    <h3 class="font-bold text-lg text-gray-800 mb-4">关卡完成情况</h3>
+                    <div id="level-stats" class="space-y-3">
+                        <!-- 关卡统计将通过JS动态添加 -->
+                    </div>
+                </div>
+
+                <!-- 隐患类型统计 -->
+                <div class="bg-light rounded-xl p-4 mb-6 transform transition-all hover:shadow-md">
+<!--                    <h3 class="font-bold text-lg text-gray-800 mb-4">隐患类型分析</h3>-->
+                    <div id="hazard-types" class="space-y-3">
+                        <!-- 隐患类型统计将通过JS动态添加 -->
+                    </div>
+                </div>
+
+                <!-- 详细报告 -->
+                <div class="bg-light rounded-xl p-4 transform transition-all hover:shadow-md">
+                    <h3 class="font-bold text-lg text-gray-800 mb-4">详细报告</h3>
+                    <div id="report-hazards" class="space-y-4">
+                        <!-- 报告内容将通过JS动态添加 -->
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-4 mt-6">
+                    <div class="flex justify-between">
+                        <button id="close-report-modal" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors">
+                            关闭报告
+                        </button>
+                        <button id="save-report" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                            <i class="fa fa-download mr-1"></i>保存报告
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 规则模态框 -->
+        <div id="rulesModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto game-shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">游戏规则</h2>
+                    <button id="closeRulesBtn" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="font-semibold text-primary mb-2">游戏目标</h3>
+                        <p>在规定时间内，找出图片中的安全隐患，获得尽可能高的分数。</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-primary mb-2">如何游戏</h3>
+                        <ol class="list-decimal list-inside space-y-2">
+                            <li>选择游戏难度开始挑战</li>
+                            <li>观察图片，点击你认为存在安全隐患的地方</li>
+                            <li>系统会提示你的选择是否正确</li>
+                            <li>找出所有隐患或时间结束后进入下一关</li>
+                            <li>连续正确识别会获得连击加成</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-primary mb-2">计分规则</h3>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>正确识别一个隐患：10分</li>
+                            <li>连续正确识别：每次额外获得5分连击加成</li>
+                            <li>剩余时间奖励：每剩余1秒额外获得1分</li>
+                            <li>困难模式得分翻倍</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-primary mb-2">提示系统</h3>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>每关可使用3次提示</li>
+                            <li>提示会显示所有隐患点位置5秒钟</li>
+                            <li>使用提示会扣除10分</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 关于模态框 -->
+        <div id="aboutModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto game-shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">关于游戏</h2>
+                    <button id="closeAboutBtn" class="text-gray-500 hover:text-gray-700">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <p>这是一个工厂安全隐患排查游戏，旨在提高玩家的安全意识。</p>
+                    <p>游戏中有多种难度级别可供选择，每个级别都有不同的时间限制和隐患数量。</p>
+                    <p>快来挑战自己，看看你能获得多少分数吧！</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- 页脚 -->
+    <footer class="bg-gray-800 text-white py-4">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2025 华润电力郴州公司安全月活动 版权所有</p>
+        </div>
+    </footer>
+    <script>
+        // 游戏状态
+        const gameState = {
+            score: 0,
+            timeRemaining: 90,
+            timerInterval: null,
+            difficulty: 'medium',
+            hints: [],
+            foundHazards: new Set(),
+            gameStarted: false,
+            isPaused: false, // 暂停状态
+            isInPauseScreen: false, // 暂停界面显示状态
+            currentLevel: 1, // 当前关卡
+            totalLevels: 8, // 总关卡数
+            levelFoundHazards: [], // 新增：记录每个关卡查找到的隐患
+            totalScore: 0, // 总得分
+            totalTime: 0, // 总用时
+            correctCount: 0, // 正确识别的隐患数量
+            totalHazards: 0, // 总隐患数量
+            levelStats: [], // 关卡统计数据
+            hazardTypes: {} // 隐患类型统计数据
+        };
+
+        // 获取规则按钮和规则模态框元素
+            const rulesBtn = document.getElementById('rulesBtn');
+            const rulesModal = document.getElementById('rulesModal');
+            const closeRulesBtn = document.getElementById('closeRulesBtn');
+
+            // 为规则按钮添加点击事件监听器，点击时显示规则模态框
+            rulesBtn.addEventListener('click', function() {
+                rulesModal.classList.remove('hidden');
+            });
+
+            // 为关闭规则模态框的按钮添加点击事件监听器，点击时隐藏规则模态框
+            closeRulesBtn.addEventListener('click', function() {
+                rulesModal.classList.add('hidden');
+            });
+
+            // 获取关于按钮和关于模态框元素
+            const aboutBtn = document.getElementById('aboutBtn');
+            const aboutModal = document.getElementById('aboutModal');
+            const closeAboutBtn = document.getElementById('closeAboutBtn');
+
+            // 为关于按钮添加点击事件监听器，点击时显示关于模态框
+            aboutBtn.addEventListener('click', function() {
+                aboutModal.classList.remove('hidden');
+            });
+
+            // 为关闭关于模态框的按钮添加点击事件监听器，点击时隐藏关于模态框
+            closeAboutBtn.addEventListener('click', function() {
+                aboutModal.classList.add('hidden');
+            });
+
+        // 清空报告数据和更新报告UI的函数
+        function clearReportData() {
+            gameState.totalScore = 0;
+            gameState.totalTime = 0;
+            gameState.correctCount = 0;
+            gameState.totalHazards = 0;
+            gameState.levelStats = [];
+            gameState.hazardTypes = {};
+
+            // 更新报告弹窗中的UI元素
+            const reportScore = document.getElementById('report-score');
+            const reportTime = document.getElementById('report-time');
+            const reportAccuracy = document.getElementById('report-accuracy');
+            const accuracyBar = document.getElementById('accuracy-bar');
+            const levelStats = document.getElementById('level-stats');
+            const hazardTypes = document.getElementById('hazard-types');
+            const reportHazards = document.getElementById('report-hazards');
+
+            reportScore.textContent = '0';
+            reportTime.textContent = '00:00';
+            reportAccuracy.textContent = '0%';
+            accuracyBar.style.width = '0%';
+            levelStats.innerHTML = '';
+            hazardTypes.innerHTML = '';
+            reportHazards.innerHTML = '';
+        }
+
+        // 重新开始游戏的函数
+        function restartGame() {
+            clearReportData(); // 清空报告数据
+            startGame(gameState.difficulty); // 开始游戏
+        }
+
+        // 重新从暂停界面开始游戏的函数
+        function restartFromPause() {
+            clearReportData(); // 清空报告数据
+            startGame(gameState.difficulty); // 开始游戏
+            pauseScreen.classList.add('hidden'); // 隐藏暂停界面
+            gameState.isPaused = false;
+            gameState.isInPauseScreen = false;
+        }
+
+        // 安全隐患数据和图片数据
+        const levelsData = [
+            {
+                image: 'v3.jpg',
+                hazards: [
+                    { id: 'hazard1', x: 18, y: 78, width: 8, height: 8, type: 'flammable',
+                      hint: '线路接触不良，存在漏电风险。', points: 10,
+                      name: '触电火灾', icon: 'fa-bolt' },
+                    { id: 'hazard2', x: 60, y: 8, width: 8, height: 8, type: 'electrical',
+                      hint: '未正确佩戴安全帽。', points: 15,
+                      name: '防护不当', icon: 'fa-ban' },
+                    { id: 'hazard3', x: 48, y:30, width: 7, height: 7, type: 'tripping',
+                      hint: '机床作业手扶工件。', points: 8,
+                      name: '机械伤害', icon: 'fa-cogs' },
+                    { id: 'hazard4', x: 84, y: 53, width: 7, height: 7, type: 'tripping',
+                      hint: '风扇未加防护网。', points: 8,
+                      name: '人身伤害', icon: 'fa-cogs' }
+                    // { id: 'hazard5', x: 28, y: 26, width: 7, height: 7, type: 'tripping',
+                    //   hint: '起重机作业半径内，人员停留易被波及。', points: 8,
+                    //   name: '起重作业隐患', icon: 'fa-ban' }
+                    // { id: 'hazard6', x: 90, y: 23, width: 7, height: 7, type: 'tripping',
+                    //   hint: '集装箱堆放不整齐。', points: 8,
+                    //   name: '物体打击', icon: 'fa-ban' },
+                    // { id: 'hazard7', x: 55, y: 85, width: 7, height: 7, type: 'tripping',
+                    //   hint: '车载集装箱堆重心偏后侧。', points: 8,
+                    //   name: '物体打击', icon: 'fa-ban' },
+                ]
+            },
+            {
+                image: 'v2.jpg',
+                hazards: [
+                    { id: 'hazard1', x: 22, y: 8, width: 8, height: 8, type: 'flammable',
+                      hint: '维修用工具未保管好，有掉落伤人风险。', points: 10,
+                      name: '工器具隐患', icon: 'fa-fan' },
+                    { id: 'hazard2', x: 66, y: 2, width: 8, height: 8, type: 'electrical',
+                      hint: '气焊作业未戴护目镜。', points: 15,
+                      name: '防护缺失', icon: 'fa-cogs' },
+                    { id: 'hazard3', x: 50, y:18, width: 7, height: 7, type: 'tripping',
+                      hint: '在高处管道上作业，未系安全带。', points: 8,
+                      name: '高处坠落', icon: 'fa-bolt' },
+                    { id: 'hazard4', x: 76, y: 25, width: 7, height: 7, type: 'tripping',
+                      hint: '动火作业没有防火星飞溅遮盖措施。', points: 8,
+                      name: '火灾', icon: 'fa-fire' }
+                    // { id: 'hazard5', x: 28, y: 26, width: 7, height: 7, type: 'tripping',
+                    //   hint: '起重机作业半径内，人员停留易被波及。', points: 8,
+                    //   name: '起重作业隐患', icon: 'fa-ban' }
+                    // { id: 'hazard6', x: 90, y: 23, width: 7, height: 7, type: 'tripping',
+                    //   hint: '集装箱堆放不整齐。', points: 8,
+                    //   name: '物体打击', icon: 'fa-ban' },
+                    // { id: 'hazard7', x: 55, y: 85, width: 7, height: 7, type: 'tripping',
+                    //   hint: '车载集装箱堆重心偏后侧。', points: 8,
+                    //   name: '物体打击', icon: 'fa-ban' },
+                ]
+            },
+            {
+                image: 'v1.jpg',
+                hazards: [
+                    { id: 'hazard1', x: 47, y: 25, width: 8, height: 8, type: 'flammable',
+                      hint: '作业时手扶工件易倒塌造成人员伤害。', points: 10,
+                      name: '工件倒塌', icon: 'fa-cogs' },
+                    { id: 'hazard2', x: 62, y: 30, width: 8, height: 8, type: 'electrical',
+                      hint: '切割打磨作业时未采取防护措施（防护眼镜）。', points: 15,
+                      name: '防护缺失', icon: 'fa-cogs' },
+                    { id: 'hazard3', x: 47, y: 58, width: 7, height: 7, type: 'tripping',
+                      hint: '砂轮机无防护罩。', points: 8,
+                      name: '工器具隐患', icon: 'fa-cogs' },
+                    { id: 'hazard4', x: 75, y: 92, width: 7, height: 7, type: 'tripping',
+                      hint: '电源线未采用保护措施。', points: 8,
+                      name: '触电伤害', icon: 'fa-bolt' }
+                    // { id: 'hazard5', x: 28, y: 26, width: 7, height: 7, type: 'tripping',
+                    //   hint: '起重机作业半径内，人员停留易被波及。', points: 8,
+                    //   name: '起重作业隐患', icon: 'fa-ban' },
+                    // { id: 'hazard6', x: 90, y: 23, width: 7, height: 7, type: 'tripping',
+                    //   hint: '集装箱堆放不整齐。', points: 8,
+                    //   name: '物体打击', icon: 'fa-ban' },
+                    // { id: 'hazard7', x: 55, y: 85, width: 7, height: 7, type: 'tripping',
+                    //   hint: '车载集装箱堆重心偏后侧。', points: 8,
+                    //   name: '物体打击', icon: 'fa-ban' },
+                ]
+            },
+            {
+                 image: "scene1.jpg",
+                hazards: [
+                    { id: 'hazard1', x: 30, y: 70, width: 8, height: 8, type: 'explosive',
+                      hint: '气瓶未固定倒地,无防护帽。', points: 10,
+                      name: '气瓶隐患', icon: 'fa-fire' },
+                    { id: 'hazard2', x: 18, y: 56, width: 8, height: 8, type: 'electrical',
+                      hint: '地面线缆随意铺设，无防护。', points: 15,
+                      name: '电缆隐患', icon: 'fa-bolt' },
+                    { id: 'hazard3', x: 70, y: 55, width: 7, height: 7, type: 'fire',
+                      hint: '动火点与气瓶未保持安全间距（通常 5m 以上）。', points: 8,
+                      name: '动火间距隐患', icon: 'fa-ban' }
+                ]
+            },
+            {
+                image: 'scene5.jpg',
+                hazards: [
+                    { id: 'hazard1', x: 50, y: 40, width: 8, height: 8, type: 'flammable',
+                      hint: '作业人员所处平台，缺少可靠防护。', points: 10,
+                      name: '防护设施隐患', icon: 'fa-fire' },
+                    { id: 'hazard2', x: 50, y: 15, width: 8, height: 8, type: 'electrical',
+                      hint: '作业人员是否正确佩戴安全带等坠落防护装备。', points: 15,
+                      name: '个人防护隐患', icon: 'fa-bolt' },
+                    { id: 'hazard3', x: 65, y: 60, width: 7, height: 7, type: 'tripping',
+                      hint: '平台上之间又孔洞，周边管线、设备复杂，有杂物坠落风险。', points: 8,
+                      name: '作业平台隐患', icon: 'fa-ban' }
+                ]
+            },
+            {
+                image: 'scene6.jpg',
+                hazards: [
+                    { id: 'hazard1', x: 30, y: 45, width: 8, height: 8, type: 'flammable',
+                      hint: '油桶随意放置在通道旁无防护，泄漏易引发火灾、污染环境，影响人员通行与应急疏散 。', points: 10,
+                      name: '危化品隐患', icon: 'fa-fire' },
+                    { id: 'hazard2', x: 72, y: 21, width: 8, height: 8, type: 'electrical',
+                      hint: '消防栓无防护栏杆，歪倒。', points: 15,
+                      name: '消防设施隐患', icon: 'fa-bolt' },
+                    { id: 'hazard3', x: 5, y: 58, width: 7, height: 7, type: 'tripping',
+                      hint: '建筑墙面开裂，地面有明显裂缝，有坍塌风险 。', points: 8,
+                      name: '建筑结构隐患', icon: 'fa-ban' }
+                ]
+            },
+            {
+                image: 'scene8.jpg',
+                hazards: [
+                    { id: 'hazard1', x: 45, y: 80, width: 8, height: 8, type: 'flammable',
+                      hint: '人员坐在压力容器（35Kg 标识）上，可能因静电、设备故障引发危险 。', points: 10,
+                      name: '静电及设备隐患', icon: 'fa-fire' },
+                    { id: 'hazard2', x: 77, y: 58, width: 8, height: 8, type: 'electrical',
+                      hint: '人员在加油站接打手机，手机电磁信号可能引发油气爆炸。', points: 15,
+                      name: '接打手机隐患', icon: 'fa-bolt' },
+                    { id: 'hazard3', x: 90, y: 68, width: 7, height: 7, type: 'tripping',
+                      hint: '加油站内吸烟,明火易引燃油气，引发爆炸、火灾 。', points: 8,
+                      name: '明火隐患', icon: 'fa-ban' },
+                    { id: 'hazard4', x: 62, y: 50, width: 7, height: 7, type: 'tripping',
+                      hint: '严禁携带油气物品上客车。', points: 8,
+                      name: '车辆隐患', icon: 'fa-ban' }
+                ]
+            },
+            {
+                image: 'scene9.jpg',
+                hazards: [
+                    { id: 'hazard1', x: 40, y: 55, width: 8, height: 8, type: 'flammable',
+                      hint: '地面有水渍，未及时清理，易导致人员摔伤 。', points: 10,
+                      name: '环境隐患', icon: 'fa-fire' },
+                    { id: 'hazard2', x: 70, y: 50, width: 8, height: 8, type: 'electrical',
+                      hint: '使用叉车载人。', points: 15,
+                      name: '叉车作业隐患', icon: 'fa-bolt' },
+                    { id: 'hazard3', x: 83, y: 68, width: 7, height: 7, type: 'tripping',
+                      hint: '爬梯子作业，无防护（如安全带 ）。', points: 8,
+                      name: '高处作业', icon: 'fa-ban' },
+                    { id: 'hazard4', x: 72, y: 26, width: 7, height: 7, type: 'tripping',
+                      hint: '集装箱货物堆积处严禁烟火。', points: 8,
+                      name: '火灾隐患', icon: 'fa-ban' },
+                    { id: 'hazard5', x: 28, y: 26, width: 7, height: 7, type: 'tripping',
+                      hint: '起重机作业半径内，人员停留易被波及。', points: 8,
+                      name: '起重作业隐患', icon: 'fa-ban' }
+                ]
+            }
+        ];
+
+        // DOM 元素
+        const startScreen = document.getElementById('startScreen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const pauseScreen = document.getElementById('pause-screen'); // 新增暂停界面
+        const gameImageContainer = document.getElementById('gameImageContainer');
+        const gameImage = document.getElementById('gameImage');
+        const timer = document.getElementById('timer');
+        const score = document.getElementById('score');
+        const startEasyBtn = document.getElementById('startEasyBtn');
+        const startHardBtn = document.getElementById('startHardBtn');
+        const backToMenuBtn = document.getElementById('back-to-menu');
+        const restartGameBtn = document.getElementById('restart-game');
+        const viewReportBtn = document.getElementById('view-report');
+        const hintModal = document.getElementById('hint-modal');
+        const hintModalContent = document.getElementById('hint-modal-content');
+        const closeHintModal = document.getElementById('close-hint-modal');
+        const hintIcon = document.getElementById('hint-icon');
+        const hintTitle = document.getElementById('hint-title');
+        const hintMessage = document.getElementById('hint-message');
+        const finalScore = document.getElementById('final-score');
+        const timeSpent = document.getElementById('time-spent');
+        const accuracyRate = document.getElementById('accuracy-rate');
+        const reportModal = document.getElementById('report-modal');
+        const reportModalContent = document.getElementById('report-modal-content');
+        const closeReportModal = document.getElementById('close-report-modal');
+        const reportSummary = document.getElementById('report-summary');
+        const reportHazards = document.getElementById('report-hazards');
+        const saveReportBtn = document.getElementById('save-report');
+        const hazardsFound = document.getElementById('hazards-found');
+        const foundHazardsList = document.getElementById('found-hazards-list');
+        const pauseBtn = document.getElementById('pauseBtn'); // 暂停按钮
+        const resumeBtn = document.getElementById('resume-btn'); // 继续游戏按钮
+        const restartBtn = document.getElementById('restart-btn'); // 重新开始按钮
+        const exitBtn = document.getElementById('exit-btn'); // 退出游戏按钮
+        const levelElement = document.getElementById('level');
+        const nextLevelChoice = document.getElementById('nextLevelChoice');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        const endGameBtn = document.getElementById('endGameBtn');
+
+        // 初始化游戏
+        function initGame() {
+            // 设置事件监听
+            startEasyBtn.addEventListener('click', () => startGame('easy'));
+            startHardBtn.addEventListener('click', () => startGame('hard'));
+            backToMenuBtn.addEventListener('click', backToMenu);
+            restartGameBtn.addEventListener('click', restartGame);
+            viewReportBtn.addEventListener('click', openReportModal);
+            closeHintModal.addEventListener('click', closeHintModalFunc);
+            closeReportModal.addEventListener('click', closeReportModalFunc);
+            saveReportBtn.addEventListener('click', saveReport);
+            pauseBtn.addEventListener('click', togglePause); // 暂停功能
+            resumeBtn.addEventListener('click', resumeGame); // 继续游戏功能
+            restartBtn.addEventListener('click', restartFromPause); // 重新开始功能
+            exitBtn.addEventListener('click', exitFromPause); // 退出游戏功能
+            nextLevelBtn.addEventListener('click', nextLevel);
+            endGameBtn.addEventListener('click', endGame);
+        }
+
+        // 开始游戏
+        function startGame(difficulty) {
+            // 设置游戏参数
+            gameState.timeRemaining = 90;
+            gameState.difficulty = difficulty;
+            gameState.score = 0;
+            gameState.foundHazards.clear();
+            gameState.gameStarted = true;
+            gameState.isPaused = false;
+            gameState.isInPauseScreen = false;
+            gameState.currentLevel = 1;
+            gameState.levelFoundHazards = []; // 重置关卡隐患记录
+            // 更新UI
+            updateTimer();
+            updateScore();
+            updateHazardsFound();
+            levelElement.textContent = gameState.currentLevel;
+            // 加载场景
+            loadScene();
+            // 切换屏幕
+            startScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            // 开始计时
+            startTimer();
+        }
+
+        // 当找到一个隐患时，记录该隐患
+        function handleHazardClick(event) {
+            const hazardId = event.target.id;
+            const currentLevelData = levelsData[gameState.currentLevel - 1];
+            const hazard = currentLevelData.hazards.find(h => h.id === hazardId);
+
+            if (hazard && !gameState.foundHazards.has(hazardId)) {
+                gameState.foundHazards.add(hazardId);
+                gameState.score += hazard.points;
+                updateScore();
+                updateHazardsFound();
+
+                // 添加新发现隐患的动画效果
+                const foundHazardsList = document.getElementById('found-hazards-list');
+                const newHazard = foundHazardsList.lastChild;
+                if (newHazard) {
+                    newHazard.classList.add('animate-pulse');
+                    setTimeout(() => {
+                        newHazard.classList.remove('animate-pulse');
+                    }, 1000);
+                }
+
+                // 记录当前关卡找到的隐患
+                if (!gameState.levelFoundHazards[gameState.currentLevel - 1]) {
+                    gameState.levelFoundHazards[gameState.currentLevel - 1] = [];
+                }
+                gameState.levelFoundHazards[gameState.currentLevel - 1].push(hazard);
+
+                showHintModal(hazard);
+
+                // 更新报告数据
+                gameState.correctCount++;
+                gameState.totalScore += hazard.points;
+                if (!gameState.hazardTypes[hazard.type]) {
+                    gameState.hazardTypes[hazard.type] = 0;
+                }
+                gameState.hazardTypes[hazard.type]++;
+
+                // 检查是否本关所有隐患已找出
+                if (gameState.foundHazards.size === currentLevelData.hazards.length) {
+                    // 记录本关统计数据
+                    const levelStats = {
+                        level: gameState.currentLevel,
+                        found: gameState.foundHazards.size,
+                        total: currentLevelData.hazards.length,
+                        score: gameState.score
+                    };
+                    gameState.levelStats.push(levelStats);
+
+                    // 检查是否还有下一关
+                    if (gameState.currentLevel < gameState.totalLevels) {
+                        showNextLevelChoice();
+                    } else {
+                        endGame();
+                    }
+                }
+            }
+        }
+
+        // 加载场景
+        function loadScene() {
+            const currentLevelData = levelsData[gameState.currentLevel - 1];
+            gameImage.src = currentLevelData.image;
+            gameState.totalHazards += currentLevelData.hazards.length;
+
+            // 清除之前的隐患点
+            gameImageContainer.innerHTML = '<img id="gameImage" src="' + currentLevelData.image + '" alt="工厂安全场景" class="w-full h-full object-cover">';
+
+            // 添加新的隐患点
+            currentLevelData.hazards.forEach(hazard => {
+                const hazardElement = document.createElement('div');
+                hazardElement.id = hazard.id;
+                hazardElement.classList.add('absolute', 'hazard');
+                hazardElement.style.left = hazard.x + '%';
+                hazardElement.style.top = hazard.y + '%';
+                hazardElement.style.width = hazard.width + '%';
+                hazardElement.style.height = hazard.height + '%';
+                hazardElement.addEventListener('click', handleHazardClick);
+                gameImageContainer.appendChild(hazardElement);
+            });
+        }
+
+        // 更新计时器
+        function updateTimer() {
+            const minutes = Math.floor(gameState.timeRemaining / 60);
+            const seconds = gameState.timeRemaining % 60;
+            timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // 开始计时
+        function startTimer() {
+            gameState.timerInterval = setInterval(() => {
+                if (!gameState.isPaused) {
+                    gameState.timeRemaining--;
+                    gameState.totalTime++;
+                    updateTimer();
+                    if (gameState.timeRemaining <= 0) {
+                        clearInterval(gameState.timerInterval);
+                        endGame();
+                    }
+                }
+            }, 1000);
+        }
+
+        // 更新得分
+        function updateScore() {
+            score.textContent = gameState.score;
+        }
+
+        // 更新已发现隐患数量
+        function updateHazardsFound() {
+            const currentLevelData = levelsData[gameState.currentLevel - 1];
+            hazardsFound.textContent = `${gameState.foundHazards.size}/${currentLevelData.hazards.length}`;
+            // 更新已发现隐患列表
+            foundHazardsList.innerHTML = '';
+
+            gameState.foundHazards.forEach(hazardId => {
+                const currentLevelData = levelsData[gameState.currentLevel - 1];
+                const hazard = currentLevelData.hazards.find(h => h.id === hazardId);
+
+                if (hazard) {
+                    const hazardItem = document.createElement('div');
+                    hazardItem.classList.add('hazard-item');
+
+                    const iconElement = document.createElement('i');
+                    iconElement.classList.add('fa', hazard.icon, 'hazard-icon', 'text-xl');
+
+                    const textElement = document.createElement('span');
+                    textElement.textContent = hazard.name;
+
+                    hazardItem.appendChild(iconElement);
+                    hazardItem.appendChild(textElement);
+                    foundHazardsList.appendChild(hazardItem);
+                }
+            });
+        }
+
+        // 显示提示弹窗
+        function showHintModal(hazard) {
+            hintIcon.innerHTML = `<i class="fa ${hazard.icon} text-3xl"></i>`;
+            hintTitle.textContent = '答对了！';
+            hintMessage.textContent = hazard.hint;
+            hintModal.classList.remove('hidden');
+            hintModalContent.classList.add('scale-100', 'opacity-100');
+        }
+
+        // 关闭提示弹窗
+        function closeHintModalFunc() {
+            hintModalContent.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                hintModal.classList.add('hidden');
+            }, 300);
+        }
+
+        // 显示下一关选择框
+        function showNextLevelChoice() {
+            gameScreen.classList.add('hidden');
+            nextLevelChoice.classList.remove('hidden');
+        }
+
+        // 进入下一关
+        function nextLevel() {
+            gameState.currentLevel++;
+            gameState.foundHazards.clear();
+            updateHazardsFound();
+            levelElement.textContent = gameState.currentLevel;
+            loadScene();
+            gameState.timeRemaining = 90;
+            updateTimer();
+            nextLevelChoice.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            startTimer();
+        }
+
+        // 结束游戏
+        function endGame() {
+            clearInterval(gameState.timerInterval);
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+
+            // 计算正确率
+            const accuracy = (gameState.correctCount / gameState.totalHazards) * 100;
+
+            // 更新结束界面数据
+            finalScore.textContent = gameState.totalScore;
+            timeSpent.textContent = formatTime(gameState.totalTime);
+            accuracyRate.textContent = `${accuracy.toFixed(2)}%`;
+        }
+
+        // 格式化时间
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        // 返回菜单
+        function backToMenu() {
+            clearReportData();
+            endScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        // 打开报告弹窗
+        function openReportModal() {
+            reportModal.classList.remove('hidden');
+            reportModalContent.classList.add('scale-100', 'opacity-100');
+
+            // 更新报告数据
+            const reportScore = document.getElementById('report-score');
+            const reportTime = document.getElementById('report-time');
+            const reportAccuracy = document.getElementById('report-accuracy');
+            const accuracyBar = document.getElementById('accuracy-bar');
+            const levelStats = document.getElementById('level-stats');
+            const hazardTypes = document.getElementById('hazard-types');
+            const reportHazards = document.getElementById('report-hazards');
+
+            // 总得分
+            reportScore.textContent = gameState.totalScore;
+
+            // 总用时
+            reportTime.textContent = formatTime(gameState.totalTime);
+
+            // 正确率
+            const accuracy = (gameState.correctCount / gameState.totalHazards) * 100;
+            reportAccuracy.textContent = `${accuracy.toFixed(2)}%`;
+            accuracyBar.style.width = `${accuracy}%`;
+
+            // 关卡统计
+            gameState.levelStats.forEach(stat => {
+                const statElement = document.createElement('div');
+                statElement.classList.add('flex', 'justify-between', 'items-center', 'bg-white', 'p-4', 'rounded-lg', 'shadow-md');
+                statElement.innerHTML = `
+                    <span>关卡 ${stat.level}</span>
+                    <span>发现隐患: ${stat.found}/${stat.total}</span>
+                    <span>得分: ${stat.score}</span>
+                `;
+                levelStats.appendChild(statElement);
+            });
+
+            // 隐患类型统计
+            for (const type in gameState.hazardTypes) {
+                const typeElement = document.createElement('div');
+                typeElement.classList.add('flex', 'justify-between', 'items-center', 'bg-white', 'p-4', 'rounded-lg', 'shadow-md');
+                typeElement.innerHTML = `
+                    <span>${type}</span>
+                    <span>数量: ${gameState.hazardTypes[type]}</span>
+                `;
+                hazardTypes.appendChild(typeElement);
+            }
+
+            // 详细报告
+            gameState.levelFoundHazards.forEach((levelHazards, level) => {
+                const levelReportElement = document.createElement('div');
+                levelReportElement.classList.add('bg-white', 'p-4', 'rounded-lg', 'shadow-md');
+                levelReportElement.innerHTML = `<h4 class="font-bold text-lg mb-2">关卡 ${level + 1}</h4>`;
+                levelHazards.forEach(hazard => {
+                    const hazardElement = document.createElement('div');
+                    hazardElement.classList.add('flex', 'items-center', 'space-x-2', 'mb-2');
+                    hazardElement.innerHTML = `
+                        <i class="fa ${hazard.icon} text-primary"></i>
+                        <span>${hazard.name}: ${hazard.hint}</span>
+                    `;
+                    levelReportElement.appendChild(hazardElement);
+                });
+                reportHazards.appendChild(levelReportElement);
+            });
+        }
+
+        // 关闭报告弹窗
+        function closeReportModalFunc() {
+            reportModalContent.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                reportModal.classList.add('hidden');
+            }, 300);
+        }
+
+        // 保存报告
+        function saveReport() {
+            const reportData = {
+                totalScore: gameState.totalScore,
+                totalTime: formatTime(gameState.totalTime),
+                accuracy: (gameState.correctCount / gameState.totalHazards) * 100,
+                levelStats: gameState.levelStats,
+                hazardTypes: gameState.hazardTypes,
+                detailedReport: gameState.levelFoundHazards
+            };
+            const reportJSON = JSON.stringify(reportData, null, 2);
+            const blob = new Blob([reportJSON], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'safety_hazard_report.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 暂停游戏
+        function togglePause() {
+            if (gameState.isPaused) {
+                resumeGame();
+            } else {
+                gameState.isPaused = true;
+                gameState.isInPauseScreen = true;
+                pauseScreen.classList.remove('hidden');
+            }
+        }
+
+        // 继续游戏
+        function resumeGame() {
+            gameState.isPaused = false;
+            gameState.isInPauseScreen = false;
+            pauseScreen.classList.add('hidden');
+            startTimer();
+        }
+
+        // 从暂停界面退出游戏
+        function exitFromPause() {
+            clearInterval(gameState.timerInterval);
+            clearReportData();
+            pauseScreen.classList.add('hidden');
+            gameScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        // 初始化游戏
+        window.onload = initGame;
+    </script>
+</body>
+</html>
